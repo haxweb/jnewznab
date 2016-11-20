@@ -1,0 +1,42 @@
+buildscript {
+  repositories {
+    jcenter()
+    // enable this to use snapshot versions of Gretty:
+    // maven { url 'http://oss.jfrog.org/artifactory/oss-snapshot-local' }
+  }
+
+  dependencies {
+    classpath 'org.akhikhl.gretty:gretty:+'
+  }
+}
+
+repositories {
+  jcenter()
+  // enable this to use snapshot versions of Gretty:
+  // maven { url 'http://oss.jfrog.org/artifactory/oss-snapshot-local' }
+}
+
+apply plugin: 'org.akhikhl.gretty'
+apply plugin: 'java'
+apply plugin: 'war'
+apply plugin: 'eclipse'
+
+task initProject () << {
+
+	project.sourceSets*.allSource.srcDirTrees.flatten().dir.each { dir ->
+		dir.mkdirs()
+	}
+}
+
+dependencies {
+	compile 'javax.servlet:servlet-api:2.5'
+	compile 'com.sun.jersey:jersey-server:1.9'
+	compile 'io.swagger:swagger-jersey2-jaxrs:1.5.0'
+	compile 'junit:junit:4.6'
+	compile 'log4j:log4j:1.2.17'
+	compile 'com.sun.jersey:jersey-json:1.9'
+	compile group: 'org.springframework', name: 'spring-beans', version: '4.3.3.RELEASE'
+	compile group: 'commons-net', name: 'commons-net', version: '3.5'
+	compile group: 'org.elasticsearch.client', name: 'transport', version: '5.0.1'
+	compile "org.apache.logging.log4j:log4j-api:2.7"
+}
