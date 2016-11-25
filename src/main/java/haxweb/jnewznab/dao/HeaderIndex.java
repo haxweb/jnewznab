@@ -10,16 +10,14 @@ import haxweb.jnewznab.poc.NNTPHeader;
 public class HeaderIndex extends AbstractElasticDao {
 
 	public static boolean saveHeaders(List<NNTPHeader> headers) {
-		BulkProcessor processor = getBulkProcessorBuilder().setBulkActions(10000).build();
-		headers.iterator().forEachRemaining(header -> {
+		for (NNTPHeader header : headers) {
 			try {
-				processor.add(new IndexRequest("headers", "header").source(getObjectMapper().writeValueAsBytes(header)));
+				getBulkProcessor().add(new IndexRequest("headers", "header").source(getObjectMapper().writeValueAsBytes(header)));
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
-		});
+		}
 		
-		processor.close();
 		return true;
 	}
 	

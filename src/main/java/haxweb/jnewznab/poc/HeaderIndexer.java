@@ -28,6 +28,7 @@ public class HeaderIndexer implements Runnable {
 		}
 		
 		IndexJobDao.update(job);
+		this.headers = null;
 	}
 	
 }

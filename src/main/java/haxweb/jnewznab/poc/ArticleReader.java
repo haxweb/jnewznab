@@ -1,6 +1,7 @@
 package haxweb.jnewznab.poc;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
@@ -11,6 +12,7 @@ import org.apache.commons.net.io.DotTerminatedMessageReader;
 import org.apache.commons.net.nntp.NNTPClient;
 import org.apache.commons.net.nntp.NewsgroupInfo;
 
+import haxweb.jnewznab.dao.HeaderIndex;
 import haxweb.jnewznab.dao.IndexJobDao;
 import haxweb.jnewznab.exec.IndexerJob;
 import haxweb.jnewznab.exec.MasterExecutor;
@@ -93,21 +95,22 @@ public class ArticleReader implements Runnable {
     
 	@Override
 	public void run() {
+		NNTPClient client = null;
 		try {
+			client = NntpClientPool.getInstance().acquire();
 			NewsgroupInfo groupInfo = new NewsgroupInfo();
-			NNTPClient client = NntpClientPool.getInstance().acquire();
 			client.selectNewsgroup(newsgroup, groupInfo);
 			
 			headerBuffer = (DotTerminatedMessageReader) client.retrieveArticleInfo(firstArticleId, lastArticleId);
 			
 			updateStatus(IndexerJobStatus.RUNNING);
 			List<NNTPHeader> headers = new ArrayList<>();
-			header = new NNTPHeader();
 			
 			String[] headerArray = null;
 	        if (headerBuffer != null) {
 	        	System.out.println("Fetcing " + firstArticleId + " to " + lastArticleId);
 	            while((currentHeaderLine = headerBuffer.readLine()) != null) {
+	            	header = new NNTPHeader();
 	            	headerArray = currentHeaderLine.split("\t");
 	            	
 	            	header.put("articleId", headerArray[0]);
@@ -123,13 +126,27 @@ public class ArticleReader implements Runnable {
 	            	headerArray = null;
 	            }
 	            headerBuffer.close();
+	            headerBuffer = null;
 	        }
 	        
+	        System.out.println("Saving to elastic search " + headers.size() + " header(s)");
+			if (HeaderIndex.saveHeaders(headers)) {
+				this.jobTodo.setStatus(IndexerJobStatus.FINISHED);
+			} else {
+				this.jobTodo.setStatus(IndexerJobStatus.ERROR);
+			}
+			
+			IndexJobDao.update(jobTodo);
+			jobTodo = null;
+			
 	        NntpClientPool.getInstance().recycle(client);
-	        System.out.println("Fetched " + headers.size() + " headers.");
-	        MasterExecutor.addIndexHeaderJob(new HeaderIndexer(headers, jobTodo));
 		} catch (Exception e) {
 			e.printStackTrace();
+			
+			try {
+				NntpClientPool.getInstance().recycle(client);
+			} catch (Exception e1) {
+			}
 			updateStatus(IndexerJobStatus.ERROR);
 		}
 	}

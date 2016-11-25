@@ -13,11 +13,24 @@ public class AbstractElasticDao {
 	
 	private static ObjectMapper mapper = new ObjectMapper();
 	
+	private static BulkProcessor processor;
+	
+	public static synchronized BulkProcessor getBulkProcessor() {
+		if (processor == null) {
+			processor = getBulkProcessorBuilder()
+				.setBulkActions(1000)
+				.setConcurrentRequests(4)
+				.build();
+		}
+		
+		return processor;
+	}
+	
 	public static ObjectMapper getObjectMapper() {
 		return mapper;
 	}
 	
-	public static BulkProcessor.Builder getBulkProcessorBuilder() {
+	private static BulkProcessor.Builder getBulkProcessorBuilder() {
 		try {
 			return BulkProcessor.builder(ElasticClient.getInstance(), new BulkProcessor.Listener() {
 				@Override

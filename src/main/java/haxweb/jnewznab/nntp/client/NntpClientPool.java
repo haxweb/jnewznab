@@ -16,10 +16,9 @@ public class NntpClientPool extends ResourcePool<NNTPClient> {
 	
 	private static NntpClientPool instance;
 	
-	public static NntpClientPool getInstance() {
+	public static synchronized NntpClientPool getInstance() {
 		if (instance == null) {
 			instance = new NntpClientPool(25, false);
-//			instance.createPool();
 		}
 		return instance;
 	}

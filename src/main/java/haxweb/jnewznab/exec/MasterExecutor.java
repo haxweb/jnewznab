@@ -40,4 +40,9 @@ public class MasterExecutor {
 		}
 	}
 	
+	public static void shutdownAll() {
+		getMasterInstance().shutdown();
+		getIndexerInstance().shutdown();
+	}
+	
 }

@@ -3,8 +3,11 @@ package haxweb.jnewznab.exec;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
+
 import haxweb.jnewznab.dao.IndexJobDao;
 import haxweb.jnewznab.dao.NewsGroupIndexDao;
+import haxweb.jnewznab.exec.IndexerJob.IndexerJobStatus;
 import haxweb.jnewznab.poc.ArticleReader;
 import haxweb.jnewznab.poc.NewsGroupIndex;
 import haxweb.jnewznab.utils.PropertiesLoader;
@@ -22,8 +25,17 @@ public class IndexerJobScheduler {
 //	alt.binaries.movies.french
 	public static IndexerJobScheduler scheduleJobsForGroup(String newsgroup) {
 		IndexerJobScheduler scheduler = new IndexerJobScheduler(newsgroup);
-		List<IndexerJob> jobs = scheduler.getSliceJobs();
+		IndexJobDao.save(scheduler.getSliceJobs());
 		return scheduler;
+	}
+	
+	public static void reScheduleErrorJobsForGroup(String newsgroup) {
+		List<IndexerJob> errorJobs = IndexJobDao.getErrorJobs(newsgroup, 1000);
+		errorJobs.iterator().forEachRemaining(job -> {
+			job.setStatus(IndexerJobStatus.PENDING);
+			IndexJobDao.update(job);
+		});
+		return;
 	}
 	
 	public List<IndexerJob> getSliceJobs() {
@@ -41,16 +53,12 @@ public class IndexerJobScheduler {
 		return jobs;
 	}
 	
-	public boolean saveJobs() {
-		return IndexJobDao.save(this.getSliceJobs());
-	}
-	
 	public Long[] getSlice() {
 		Long[] slice = new Long[2];
 		if (newsgroup.getIndexedFirstArticleId() == null) {
 			slice[0] = newsgroup.getFirstArticleId();
 		} else {
-			slice[1] = newsgroup.getIndexedLastArticleId();
+			slice[0] = newsgroup.getIndexedLastArticleId();
 		}
 		
 		slice[1] = newsgroup.getLastArticleId();
@@ -74,8 +82,10 @@ public class IndexerJobScheduler {
 	}
 
 	public static void main(String[] args) {
-//		IndexerJobScheduler scheduler = IndexerJobScheduler.scheduleJobsForGroup("alt.binaries.series");
-//		scheduler.saveJobs();
+		NewsGroupIndexDao.refreshNewsGroupsList();
+		IndexerJobScheduler.scheduleJobsForGroup("alt.binaries.series");
+//		reScheduleErrorJobsForGroup("alt.binaries.series");
 		runPendingJobsFor("alt.binaries.series");
+		MasterExecutor.shutdownAll();
 	}
 }

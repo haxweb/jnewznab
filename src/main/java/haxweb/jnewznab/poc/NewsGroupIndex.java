@@ -1,9 +1,10 @@
 package haxweb.jnewznab.poc;
 
 import org.apache.commons.net.nntp.NewsgroupInfo;
-import org.elasticsearch.search.DocValueFormat.DateTime;
+import org.joda.time.DateTime;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonInclude;
 
 public class NewsGroupIndex {
 
@@ -11,6 +12,7 @@ public class NewsGroupIndex {
 	
 	private String newsgroup;
 	
+	@JsonInclude(JsonInclude.Include.NON_NULL)
 	private DateTime lastRefresh;
 	
 	private boolean enableIndex;
@@ -19,8 +21,10 @@ public class NewsGroupIndex {
 	
 	private Long lastArticleId;
 	
+	@JsonInclude(JsonInclude.Include.NON_NULL)
 	private Long indexedFirstArticleId;
 	
+	@JsonInclude(JsonInclude.Include.NON_NULL)
 	private Long indexedLastArticleId;
 	
 	@JsonCreator
@@ -107,4 +111,8 @@ public class NewsGroupIndex {
 		this.indexedLastArticleId = indexedLastArticleId;
 	}
 	
+	@Override
+	public String toString() {
+		return "NewsGroupIndex#[ " + getNewsgroup() + "]";
+	}
 }
