@@ -26,6 +26,7 @@ public class IndexerJobScheduler {
 	public static IndexerJobScheduler scheduleJobsForGroup(String newsgroup) {
 		IndexerJobScheduler scheduler = new IndexerJobScheduler(newsgroup);
 		IndexJobDao.save(scheduler.getSliceJobs());
+		
 		return scheduler;
 	}
 	
