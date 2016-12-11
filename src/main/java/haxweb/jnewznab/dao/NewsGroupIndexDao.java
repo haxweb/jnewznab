@@ -1,6 +1,5 @@
 package haxweb.jnewznab.dao;
 
-import java.io.IOException;
 import java.util.List;
 
 import org.apache.commons.net.nntp.NewsgroupInfo;
@@ -25,11 +24,14 @@ public class NewsGroupIndexDao extends AbstractElasticDao {
 		}
 	}
 	
-	public static boolean update(NewsGroupIndex newsgroup) {
+	public static boolean update(NewsGroupIndex newsgroup, boolean flush) {
 		try {
 			getBulkProcessor()
 				.add(new UpdateRequest("newsgroups", "newsgroup", newsgroup.getNewsgroup())
 					.doc(getObjectMapper().writeValueAsBytes(newsgroup)));
+			if (flush) {
+				getBulkProcessor().flush();
+			}
 			return true;
 		} catch (Exception e) {
 			System.out.println("Error trying to update a NewsgroupIndex [ "+ newsgroup + " ] : ");
@@ -58,7 +60,7 @@ public class NewsGroupIndexDao extends AbstractElasticDao {
 				}
 			});
 			
-			AbstractElasticDao.getBulkProcessor().flush();
+			getBulkProcessor().flush();
 			return true;
 		} catch (Exception e) {
 			System.out.println("Error trying to refresh newsgroups listing : ");

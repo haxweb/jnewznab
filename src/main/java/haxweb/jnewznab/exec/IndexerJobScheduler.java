@@ -2,8 +2,7 @@ package haxweb.jnewznab.exec;
 
 import java.util.ArrayList;
 import java.util.List;
-
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
+import java.util.concurrent.TimeUnit;
 
 import haxweb.jnewznab.dao.IndexJobDao;
 import haxweb.jnewznab.dao.NewsGroupIndexDao;
@@ -26,11 +25,25 @@ public class IndexerJobScheduler {
 	public static IndexerJobScheduler scheduleJobsForGroup(String newsgroup) {
 		IndexerJobScheduler scheduler = new IndexerJobScheduler(newsgroup);
 		IndexJobDao.save(scheduler.getSliceJobs());
+		NewsGroupIndex newsgroupIndex = NewsGroupIndexDao.getById(newsgroup);
+		if (newsgroupIndex != null) {
+			newsgroupIndex.setIndexedLastArticleId(scheduler.getSlice()[1]);
+			NewsGroupIndexDao.update(newsgroupIndex, true);
+		}
 		return scheduler;
 	}
 	
 	public static void reScheduleErrorJobsForGroup(String newsgroup) {
 		List<IndexerJob> errorJobs = IndexJobDao.getErrorJobs(newsgroup, 1000);
+		errorJobs.iterator().forEachRemaining(job -> {
+			job.setStatus(IndexerJobStatus.PENDING);
+			IndexJobDao.update(job);
+		});
+		return;
+	}
+	
+	public static void restartRunningJobsForGroup(String newsgroup) {
+		List<IndexerJob> errorJobs = IndexJobDao.getRunningJobs(newsgroup, 1000);
 		errorJobs.iterator().forEachRemaining(job -> {
 			job.setStatus(IndexerJobStatus.PENDING);
 			IndexJobDao.update(job);
@@ -66,26 +79,36 @@ public class IndexerJobScheduler {
 	}
 	
 	public static void runPendingJobsFor(String newsgroup) {
-		List<IndexerJob> jobs;
+		List<IndexerJob> jobs = new ArrayList<>();
 		List<Runnable> readers = new ArrayList<>();
-		jobs = IndexJobDao.getPendingJobs(newsgroup, 1000);
-		if (jobs.size() == 0) {
-			System.out.println("No job to do");
-			return;
+		try {
+			while (true) {
+				jobs = IndexJobDao.getPendingJobs(newsgroup, 1000);
+				if (jobs == null || jobs.size() == 0) {
+					System.out.println("No job to do");
+					return;
+				}
+				for (IndexerJob todo : jobs) {
+					readers.add(new ArticleReader(todo));
+				}
+				
+				System.out.println("Added " + readers.size() + " Header fetcher jobs.");
+				MasterExecutor.addTodosMaster(readers);
+				MasterExecutor.getMasterInstance().shutdown();
+				MasterExecutor.getMasterInstance().awaitTermination(10, TimeUnit.HOURS);
+				MasterExecutor.clearMasterInstance();
+			}
+		} catch (Exception e) {
+			System.out.println("Exception during jobs execution on newsgroup [" + newsgroup + "]");
+			e.printStackTrace();
 		}
-		for (IndexerJob todo : jobs) {
-			readers.add(new ArticleReader(todo));
-		}
-		
-		System.out.println("Added " + readers.size() + " Header fetcher jobs.");
-		MasterExecutor.addTodosMaster(readers);
 	}
 
 	public static void main(String[] args) {
-		NewsGroupIndexDao.refreshNewsGroupsList();
-		IndexerJobScheduler.scheduleJobsForGroup("alt.binaries.series");
-//		reScheduleErrorJobsForGroup("alt.binaries.series");
+//		NewsGroupIndexDao.refreshNewsGroupsList();
+//		IndexerJobScheduler.scheduleJobsForGroup("alt.binaries.series");
+		reScheduleErrorJobsForGroup("alt.binaries.series");
+		restartRunningJobsForGroup("alt.binaries.series");
 		runPendingJobsFor("alt.binaries.series");
-		MasterExecutor.shutdownAll();
 	}
 }

@@ -1,7 +1,5 @@
 package haxweb.jnewznab.exec;
 
-import java.util.UUID;
-
 import com.fasterxml.jackson.annotation.JsonCreator;
 
 public class IndexerJob {

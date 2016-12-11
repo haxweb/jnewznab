@@ -25,6 +25,7 @@ public class IndexJobDao extends AbstractElasticDao {
 				e.printStackTrace();
 			}
 		});
+		getBulkProcessor().flush();
 		return true;
 	}
 	
@@ -42,13 +43,13 @@ public class IndexJobDao extends AbstractElasticDao {
 		}
 	}
 	
-	public static List<IndexerJob> getErrorJobs(String newsgroup, int limit) {
+	public static List<IndexerJob> getJobsByStatus(String newsgroup, String status, int limit) {
 		try {
 			SearchResponse scrollResp;
 			scrollResp = ElasticClient.getInstance().prepareSearch("indexjobs")
 					.setTypes("indexjob")
 					.addSort("lastArticleId", SortOrder.DESC)
-					.setQuery(QueryBuilders.queryStringQuery("newsgroup:" + newsgroup + " AND status:ERROR"))
+					.setQuery(QueryBuilders.queryStringQuery("newsgroup:" + newsgroup + " AND status:" + status))
 					.setSize(limit).execute().actionGet();
 			
 			List<IndexerJob> results = new ArrayList<>();
@@ -64,6 +65,14 @@ public class IndexJobDao extends AbstractElasticDao {
 			e1.printStackTrace();
 			return null;
 		}
+	}
+	
+	public static List<IndexerJob> getRunningJobs(String newsgroup, int limit) {
+		return getJobsByStatus(newsgroup, IndexerJobStatus.RUNNING.toString(), limit);
+	}
+	
+	public static List<IndexerJob> getErrorJobs(String newsgroup, int limit) {
+		return getJobsByStatus(newsgroup, IndexerJobStatus.ERROR.toString(), limit);
 	}
 	
 	public static List<IndexerJob> getPendingJobs(String newsgroup, int limit) {

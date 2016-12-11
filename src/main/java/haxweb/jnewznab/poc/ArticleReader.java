@@ -113,6 +113,7 @@ public class ArticleReader implements Runnable {
 	            	header = new NNTPHeader();
 	            	headerArray = currentHeaderLine.split("\t");
 	            	
+	            	header.put("newsgroup", this.newsgroup);
 	            	header.put("articleId", headerArray[0]);
 	            	header.put("subject", headerArray[1]);
 	            	header.put("author", headerArray[2]);
@@ -175,17 +176,6 @@ public class ArticleReader implements Runnable {
 			e.printStackTrace();
 		}
 		
-//		
-//		try {
-//			NNTPHeader headerResult = header.get();
-//			for (Entry<String, String> headerEntry : headerResult.entrySet()) {
-//				System.out.println("Key " + headerEntry.getKey());
-//				System.out.println("Value " + headerEntry.getValue());
-//			}
-//			master.shutdown();
-//		} catch (InterruptedException | ExecutionException e) {
-//			e.printStackTrace();
-//		} 
 	}
 	
 }

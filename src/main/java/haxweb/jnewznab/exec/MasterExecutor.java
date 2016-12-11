@@ -3,6 +3,7 @@ package haxweb.jnewznab.exec;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 import haxweb.jnewznab.utils.PropertiesLoader;
 
@@ -12,7 +13,15 @@ public class MasterExecutor {
 	
 	private static ExecutorService indexer;
 	
-	private static ExecutorService getMasterInstance() {
+	public static void clearMasterInstance() {
+		master = null;
+	}
+	
+	public static void clearIndexerInstance() {
+		indexer = null;
+	}
+	
+	public static ExecutorService getMasterInstance() {
 		if (master == null) {
 			master = Executors.newFixedThreadPool(Integer.valueOf(PropertiesLoader.getProperty("jobs.master.pool")));
 		}
@@ -20,7 +29,7 @@ public class MasterExecutor {
 		return master;
 	}
 	
-	private static ExecutorService getIndexerInstance() {
+	public static ExecutorService getIndexerInstance() {
 		if (indexer == null) {
 			indexer = Executors.newFixedThreadPool(Integer.valueOf(PropertiesLoader.getProperty("jobs.indexer.pool")));
 		}
